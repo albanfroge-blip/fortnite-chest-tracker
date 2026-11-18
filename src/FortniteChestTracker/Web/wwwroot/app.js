@@ -523,8 +523,41 @@ function home() {
       <div class="hud-actions"><button class="btn btn-sm" data-goto="${esc(m.id)}">${icon('right')}${esc(t('seeDetail'))}</button></div>` : `<div class="hud-sub" style="margin-top:12px"><span>${esc(t('noMatchYet'))}</span></div>`}</section>`;
   }
 
-  return `<div class="page home-page">${total}${token}${last}<div class="stage"></div><div class="docks">${overlayDock()}${friendsDock()}</div>
+  return `<div class="page home-page">${total}${token}${last}<div class="stage">${homeExtras()}</div><div class="docks">${overlayDock()}${friendsDock()}</div>
     <button class="share-fab" data-act="share" title="${esc(t('shareTitle'))}">${icon('camera')}<span>${esc(t('share'))}</span></button></div>`;
+}
+
+// Home, under the three panels (where the 3D scene was): every treasure with its chance, and the last matches.
+function homeExtras() {
+  const h = S.hunt;
+  const order = ['odds_gizmo', 'odds_loading', 'odds_jam', 'odds_pickaxe', 'odds_vehicle', 'odds_pirate', 'odds_gold'];
+  const rewards = order.map((k) => h.odds.find((x) => x.key === k)).filter(Boolean).map((o) => {
+    const c = chanceOf(h, o);
+    const pick = o.key !== 'odds_gizmo';
+    return `<div class="rw${ui.goal === o.key ? ' on' : ''}${pick ? ' pick' : ''}"${pick ? ` data-goal="${o.key}"` : ''} title="${esc(t(o.key))}">
+      <span class="rw-n">${o.key === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : ''}${esc(t('short_' + o.key))}</span>
+      <span class="rw-o">1 / ${nf(o.odds)}</span><b class="rw-p num">${esc(pctx(c))}</b>
+      <div class="rw-bar"><i style="width:${Math.max(1, Math.min(1, c) * 100).toFixed(1)}%"></i></div></div>`;
+  }).join('');
+  const left = `<section class="hud home-rewards"><div class="hud-label">${icon('star')}${esc(t('homeRewards'))}</div>
+    <div class="rw-list">${rewards}</div><div class="hud-foot">${esc(t('homeRewardsHint'))}</div></section>`;
+
+  const recent = S.matches.slice(0, 12).reverse();
+  let right;
+  if (!recent.length) {
+    right = `<section class="hud home-recent"><div class="hud-label">${icon('matches')}${esc(t('homeRecent'))}</div>
+      <div class="hud-sub" style="margin-top:12px"><span>${esc(t('noMatchYet'))}</span></div></section>`;
+  } else {
+    const max = Math.max(1, ...recent.map((m) => m.chests));
+    const avg = S.stats.average || 0;
+    const best = Math.max(...recent.map((m) => m.chests));
+    const bars = recent.map((m) => `<div class="rc-col${m.chests === best ? ' best' : ''}" title="${esc(dateTime(m.when))} · ${esc(m.mode)}">
+      <b class="num">${nf(m.chests)}</b><i style="height:${Math.max(4, (m.chests / max) * 100).toFixed(1)}%"></i></div>`).join('');
+    const avgLine = avg ? `<div class="rc-avg" style="bottom:${Math.min(100, (avg / max) * 100).toFixed(1)}%"><span>${esc(t('homeAvg', nf1(avg)))}</span></div>` : '';
+    right = `<section class="hud home-recent"><div class="hud-label">${icon('matches')}${esc(t('homeRecent'))}</div>
+      <div class="rc-plot">${avgLine}${bars}</div></section>`;
+  }
+  return left + right;
 }
 
 function matches() {
@@ -1067,7 +1100,6 @@ function settings() {
     ${sw('set-openui', s.openUiOnStart, t('openUiOnStart'), t('openUiOnStartHint'))}
     ${sw('set-fortnite', s.startWithFortnite, t('startWithFortnite'), s.canStartWithFortnite ? t('startWithFortniteHint') : t('startWithFortniteUnavailable'), !s.canStartWithFortnite)}
     ${S.overlay.available ? sw('set-overlay', s.showOverlay, t('overlayEnabled'), t('overlayEnabledHint')) : ''}
-    ${sw('set-scene', s.scene3D !== false, t('scene3d'), t('scene3dHint'))}
     ${installRow(s)}`);
   const replays = card('s4', t('replays'), `
     <label class="field">${esc(t('demosFolder'))}<div class="row"><input type="text" id="set-demos" data-draft value="${esc(draft('set-demos', s.demosFolder))}" style="flex:1" data-enter="set-demos-save">
@@ -1187,6 +1219,9 @@ const SCENE_H = 600;
 
 // Asks the scene (scene.js) for a picture; null when there is no 3D (no WebGL, models not loaded).
 function sceneShot(width, height, dug) {
+  // The 3D scene was removed (it made the page lag): the card is drawn without it.
+  return Promise.resolve(null);
+  // eslint-disable-next-line no-unreachable
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(null), 4000);
     window.dispatchEvent(new CustomEvent('fct-snapshot', { detail: { width, height, dug, resolve: (url) => { clearTimeout(timer); resolve(url); } } }));

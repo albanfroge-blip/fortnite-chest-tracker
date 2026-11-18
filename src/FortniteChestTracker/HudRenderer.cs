@@ -433,6 +433,11 @@ internal sealed partial class HudRenderer : IDisposable
             ? L.T($"Dernière : {L.N(lastChests)} coffres", $"Last: {L.N(lastChests)} chests", $"Última: {L.N(lastChests)} cofres") + (v.LastDuration != null ? " · " + v.LastDuration : "")
             : null;
         var updated = v.UpdatedAt != null ? L.T("MàJ ", "Updated ", "Act. ") + v.UpdatedAt : null;
+        var perfLine = v.AvgChests != null
+            ? L.T($"Moy. {v.AvgChests}", $"Avg {v.AvgChests}", $"Media {v.AvgChests}")
+              + (v.BestChests is { } bestC ? L.T($" · Record {L.N(bestC)}", $" · Best {L.N(bestC)}", $" · Récord {L.N(bestC)}") : "")
+              + (v.PerHour != null ? $" · {v.PerHour}/h" : "")
+            : null;
         var fEvent = Font(anton, S(12), 400);
 
         // + room on the right for the padlock of the edit mode (the width stays the same locked or not)
@@ -449,10 +454,14 @@ internal sealed partial class HudRenderer : IDisposable
         {
             contentW = Math.Max(contentW, Advance(fEvent, v.Event) + S(12));
         }
+        if (perfLine != null)
+        {
+            contentW = Math.Max(contentW, Advance(fInfo, perfLine));
+        }
         var w = Math.Max(minWidth, contentW + 2 * margin);
         contentW = w - 2 * margin;
         var barH = S(7);
-        var h = margin + icon + (v.Goal != null ? S(9) + barH : 0) + (v.Event != null ? S(9) + fEvent.Cap : 0) + (lastLine != null ? S(9) + fInfo.Cap : 0) + (site != null ? S(9) + fSite.Cap : 0) + margin + S(2);
+        var h = margin + icon + (v.Goal != null ? S(9) + barH : 0) + (v.Event != null ? S(9) + fEvent.Cap : 0) + (lastLine != null ? S(9) + fInfo.Cap : 0) + (perfLine != null ? S(9) + fInfo.Cap : 0) + (site != null ? S(9) + fSite.Cap : 0) + margin + S(2);
 
         var f = NewFrame(w, h);
         var cv = new Canvas(f);
@@ -526,6 +535,12 @@ internal sealed partial class HudRenderer : IDisposable
             {
                 Text(cv, fInfo, updated, x0 + contentW - Advance(fInfo, updated), y, Muted, Muted, S(2), 0);
             }
+            y += fInfo.Cap;
+        }
+        if (perfLine != null)
+        {
+            y += S(9);
+            Text(cv, fInfo, perfLine, x0, y, Aqua, Aqua, S(2), 0);
             y += fInfo.Cap;
         }
         if (site != null)

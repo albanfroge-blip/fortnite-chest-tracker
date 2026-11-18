@@ -418,7 +418,30 @@ input:focus, select:focus { outline: none; border-color: var(--lime); }
 .dig { position: relative; height: 18px; margin-top: 14px; border-radius: 6px; overflow: hidden;
   background: repeating-linear-gradient(-55deg, rgba(255, 255, 255, .06) 0 10px, rgba(255, 255, 255, .02) 10px 20px), rgba(4, 14, 52, .55); border: 1px solid var(--line); }
 .dig i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--amber), var(--lime)); box-shadow: 0 0 16px rgba(198, 255, 61, .45); }
-.stage { grid-column: 1 / -1; }
+/* Under the three panels (the 3D scene used to be here): every reward + the last matches; room left for the docks */
+.stage { grid-column: 1 / -1; display: grid; grid-template-columns: 7fr 5fr; gap: 16px; align-content: start; min-height: 0; padding-bottom: 150px; }
+.home-rewards, .home-recent { min-height: 0; }
+.rw-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; margin-top: 14px; }
+.rw { display: grid; grid-template-columns: 1fr auto auto; align-items: baseline; gap: 4px 10px; padding: 8px 10px; border-radius: 10px;
+  background: var(--panel-2); border: 1px solid transparent; transition: border-color .15s, background .15s; }
+.rw.pick { cursor: pointer; }
+.rw.pick:hover { border-color: var(--line-2); background: rgba(255, 200, 61, .07); }
+.rw.on { border-color: var(--lime); background: rgba(255, 200, 61, .1); }
+.rw-n { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rw-n .ico-img { width: 18px; height: 18px; }
+.rw-o { font-size: 11.5px; color: var(--text-3); }
+.rw-p { font: 18px/1 var(--display); color: var(--lime); }
+.rw-bar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.rw-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--amber), var(--lime)); }
+.rc-plot { position: relative; display: flex; align-items: flex-end; gap: 6px; height: 170px; margin-top: 30px; padding-top: 4px; }
+.rc-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
+.rc-col b { font: 13px/1 var(--display); color: var(--text-2); }
+.rc-col i { display: block; width: 100%; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, var(--aqua), rgba(46, 230, 200, .35)); }
+.rc-col.best b { color: var(--lime); }
+.rc-col.best i { background: linear-gradient(180deg, var(--lime), rgba(255, 200, 61, .35)); box-shadow: 0 0 14px rgba(255, 200, 61, .4); }
+.rc-avg { position: absolute; left: 0; right: 0; border-top: 2px dashed rgba(255, 159, 67, .7); pointer-events: none; }
+.rc-avg span { position: absolute; right: 0; top: -20px; font: 12px/1 var(--display); text-transform: uppercase; color: var(--amber); }
+@media (max-width: 1100px) { .stage { grid-template-columns: 1fr; } .rw-list { grid-template-columns: 1fr; } }
 .hud-actions { margin-top: 12px; display: flex; gap: 8px; }
 .hud-sub .tag svg { width: 13px; height: 13px; margin-right: 5px; }
 .hud-actions .btn svg { width: 15px; height: 15px; }
