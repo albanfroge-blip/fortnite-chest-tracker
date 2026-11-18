@@ -5,18 +5,18 @@
    Spacing 4/8/12/16/20/24 px, radii 10 (items) / 14 (controls) / 18 (panels). */
 @font-face { font-family: "Anton"; src: url("/fonts/Anton-Regular.ttf") format("truetype"); font-display: swap; }
 :root {
-  --panel: rgba(8, 22, 74, .74);
+  --panel: rgba(20, 12, 44, .78);
   --panel-2: rgba(255, 255, 255, .06);
-  --line: rgba(150, 190, 255, .16);
-  --line-2: rgba(150, 190, 255, .28);
-  --text: #f6f3ff;
-  --text-2: #bcd0f5;
-  --text-3: #8aa3d6;
-  --lime: #c6ff3d;
-  --lime-ink: #0b1a4a;
-  --aqua: #3ee6ff;
+  --line: rgba(255, 210, 140, .16);
+  --line-2: rgba(255, 210, 140, .30);
+  --text: #fff7ea;
+  --text-2: #e3cfa8;
+  --text-3: #a8916c;
+  --lime: #ffc83d;
+  --lime-ink: #1a1030;
+  --aqua: #2ee6c8;
   --amber: #ffb83a;
-  --coral: #ff5f7e;
+  --coral: #ff4d5e;
   --violet: #a77bff;
   --green: #5ff08a;
   --common: #a9b0cc;
@@ -35,8 +35,10 @@ body {
   font: 14px/1.45 var(--font);
   color: var(--text);
   /* Battle-royale sky: deep navy at the top, bright blue lower down, a touch of cyan at the horizon */
-  background: radial-gradient(1200px 520px at 50% 108%, rgba(80, 220, 255, .55), transparent 70%),
-    linear-gradient(180deg, #071447 0%, #0d2a86 34%, #1752cf 68%, #2d8ff0 100%) fixed;
+  /* Pirate night: dark sky, a golden moon glow and the sea at the horizon */
+  background: radial-gradient(900px 420px at 80% -10%, rgba(255, 200, 61, .22), transparent 70%),
+    radial-gradient(1200px 520px at 50% 108%, rgba(46, 230, 200, .35), transparent 70%),
+    linear-gradient(180deg, #0a0820 0%, #1a1238 38%, #12305a 72%, #0f5a6e 100%) fixed;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }

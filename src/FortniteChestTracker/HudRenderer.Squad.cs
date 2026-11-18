@@ -102,7 +102,7 @@ internal sealed partial class HudRenderer
                 var pad = (g.W - ink.M.W) / 2;
                 cv.Fill(g, numX - ink.Pad - pad, numTop - ink.Pad - fNum.CapTop - pad, Lime, 0.9f * pop);
             }
-            var (numTopCol, numBottomCol) = leader ? (Col.Hex(0xe9ffad), Lime) : m.Chests == null || waiting ? (Muted, Muted) : (White, Ice);
+            var (numTopCol, numBottomCol) = leader ? (GoldLight, Lime) : m.Chests == null || waiting ? (Muted, Muted) : (White, Ice);
             Text(cv, fNum, number, numX, numTop, numTopCol, numBottomCol, S(3), S(2));
 
             // ---- Name (cut to the column)

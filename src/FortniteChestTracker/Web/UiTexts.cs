@@ -336,6 +336,7 @@ public static class UiTexts
         ("short_odds_pickaxe", "Pioche / sac", "Pickaxe / bling", "Pico / mochila"),
         ("short_odds_jam", "Piste musicale", "Jam track", "Pista musical"),
         ("short_odds_loading", "Écran de chargement", "Loading screen", "Pantalla de carga"),
+        ("short_odds_gizmo", "Gizmo", "Gizmo", "Artilugio"),
         ("goalAuto", "Auto", "Auto", "Auto"),
         ("goalAutoHint", "Le prochain trésor pas encore atteint en moyenne", "The next treasure not reached on average yet", "El próximo tesoro aún no alcanzado de media"),
         ("goalPick", "Choisir le trésor visé", "Choose the treasure you aim for", "Elegir el tesoro objetivo"),

@@ -81,9 +81,10 @@ internal sealed class HudFrame
 internal sealed partial class HudRenderer : IDisposable
 {
     // Colours of the page (night blue, lime, aqua, coral).
-    private static readonly Col Navy = Col.Hex(0x071036), Deep = Col.Hex(0x0b1a4a), Panel = Col.Hex(0x12266c), Lime = Col.Hex(0xc6ff3d),
-        LimeDark = Col.Hex(0x7fc21a), Aqua = Col.Hex(0x3ee6ff), Coral = Col.Hex(0xff5f7e), Amber = Col.Hex(0xffbf3a), White = Col.Hex(0xffffff),
-        Ice = Col.Hex(0xd8e6ff), Muted = Col.Hex(0xbcd0f5), Lavender = Col.Hex(0xcdb6ff);
+    // Pirate theme: deep night sea, treasure gold, sea teal, crimson flag.
+    private static readonly Col Navy = Col.Hex(0x0a0820), Deep = Col.Hex(0x1a1238), Panel = Col.Hex(0x2a1d55), Lime = Col.Hex(0xffc83d),
+        LimeDark = Col.Hex(0xc98a12), Aqua = Col.Hex(0x2ee6c8), Coral = Col.Hex(0xff4d5e), Amber = Col.Hex(0xff9f43), White = Col.Hex(0xffffff),
+        Ice = Col.Hex(0xfff3dc), Muted = Col.Hex(0xd9c9a8), Lavender = Col.Hex(0xe0b8ff), GoldLight = Col.Hex(0xfff0b3), Crimson = Col.Hex(0x8a1c2b);
 
     private static readonly Lazy<bool> Anton = new(LoadAnton);
     private static readonly Lazy<Img?> ChestImg = new(() => Img.Load("FortniteChestTracker.hud.chest.png"));
@@ -189,7 +190,38 @@ internal sealed partial class HudRenderer : IDisposable
             contentW = w - 2 * margin;
             right = w - margin;
         }
-        var h = margin + heroH + eventH + goalH + (v.ShowStats ? statsH : 0) + (lastRow != null ? statsH : 0) + siteH + margin + S(4);
+        // Performance row: average, best match, chests per hour
+        var perfRow = v.AvgChests != null ? new (string Value, string Label, Col Color)[]
+        {
+            (v.AvgChests, L.T("MOY. / PARTIE", "AVG / MATCH", "MEDIA / PARTIDA"), Aqua),
+            (v.BestChests is { } best ? L.N(best) : "—", L.T("RECORD", "BEST", "RÉCORD"), Lime),
+            (v.PerHour ?? "—", L.T("COFFRES / H", "CHESTS / H", "COFRES / H"), Aqua),
+        } : null;
+        // Grid of the other treasures: name and chance, two columns, with a thin bar each
+        var oddsList = v.AllOdds is { Count: > 0 } list ? list : null;
+        var fOddsTitle = Font(anton, S(13), 400);
+        var oddsRowH = fSmall.Cap + S(5) + S(4);
+        var oddsH = oddsList != null ? S(18) + fOddsTitle.Cap + S(4) + (oddsList.Count + 1) / 2 * (oddsRowH + S(9)) : 0;
+        if (oddsList != null)
+        {
+            var need = oddsList.Max(o => Advance(fSmall, o.Name) + S(10) + Advance(fSmall, HudModel.Percent(o.Chance) + (o.Boosted ? " ×" : "")));
+            contentW = Math.Max(contentW, 2 * need + S(22));
+            w = Math.Max(minWidth, contentW + 2 * margin);
+            contentW = w - 2 * margin;
+            right = w - margin;
+        }
+        if (perfRow != null)
+        {
+            var perfW = RowWidth(perfRow);
+            if (perfW > contentW)
+            {
+                contentW = perfW;
+                w = Math.Max(minWidth, contentW + 2 * margin);
+                contentW = w - 2 * margin;
+                right = w - margin;
+            }
+        }
+        var h = margin + heroH + eventH + goalH + (v.ShowStats ? statsH : 0) + (lastRow != null ? statsH : 0) + (perfRow != null ? statsH : 0) + oddsH + siteH + margin + S(4);
 
         var f = NewFrame(w, h);
         var cv = new Canvas(f);
@@ -207,7 +239,7 @@ internal sealed partial class HudRenderer : IDisposable
         }
         var nx = x0 + icon + S(10);
         var numTop = y + (heroH - fBig.Cap) / 2 + S(2);
-        var numTopCol = v.Mode == HudMode.Live ? Col.Hex(0xe9ffad) : White;
+        var numTopCol = v.Mode == HudMode.Live ? GoldLight : White;
         var numBottomCol = v.Mode == HudMode.Live ? Lime : v.Chests == null ? Muted : Ice;
         if (pop > 0)
         {
@@ -228,7 +260,7 @@ internal sealed partial class HudRenderer : IDisposable
         {
             var plus = "+" + L.N(popCount);
             var rise = (1 - pop) * S(26);
-            Text(cv, fPct, plus, nx + numW - S(4), (int)(numTop - S(14) - rise), Col.Hex(0xe9ffad), Lime, S(3), S(2), Math.Min(1, pop * 1.6f));
+            Text(cv, fPct, plus, nx + numW - S(4), (int)(numTop - S(14) - rise), GoldLight, Lime, S(3), S(2), Math.Min(1, pop * 1.6f));
         }
         y += heroH;
 
@@ -239,7 +271,7 @@ internal sealed partial class HudRenderer : IDisposable
             var pillH = fEvent.Cap + S(10);
             var pillW = Advance(fEvent, ev) + S(30);
             var pill = Cached($"evpill{pillW}x{pillH}", () => Gfx.RoundRect(pillW, pillH, pillH / 2f));
-            cv.Fill(pill, x0, y - S(5), v.EventOn ? Lime : Col.Hex(0x0b1a4a), v.EventOn ? 0.95f : 0.85f);
+            cv.Fill(pill, x0, y - S(5), v.EventOn ? Lime : Deep, v.EventOn ? 0.95f : 0.85f);
             var bolt = v.EventOn ? Col.Hex(0x0b1a4a) : Lime;
             var mark = Cached($"evbolt{fEvent.Cap}", () => Gfx.Poly(S(9), fEvent.Cap, new (float, float)[] { (S(6), 0f), (0f, fEvent.Cap * 0.58f), (S(4), fEvent.Cap * 0.58f), (S(3), (float)fEvent.Cap), (S(9), fEvent.Cap * 0.38f), (S(5), fEvent.Cap * 0.38f) }));
             cv.Fill(mark, x0 + S(10), y, bolt, 1f);
@@ -254,7 +286,7 @@ internal sealed partial class HudRenderer : IDisposable
             y += fEvent.Cap + S(5);
         }
 
-        // ---- Goal: token, name, chance, segmented "dig" bar, chests / odds
+        // ---- Goal: token, name, chance, segmented "dig" bar, chests / oddsList
         if (v.Goal is { } goal)
         {
             y += S(16);
@@ -274,15 +306,15 @@ internal sealed partial class HudRenderer : IDisposable
             }
             Text(cv, fGoal, goal.Name.ToUpper(L.Culture), gx, y, White, Ice, S(3), S(2));
             var pct = HudModel.Percent(goal.Chance);
-            Text(cv, fPct, pct, right - Advance(fPct, pct), y + fGoal.Cap - fPct.Cap, Col.Hex(0xe9ffad), Lime, S(3), S(2));
+            Text(cv, fPct, pct, right - Advance(fPct, pct), y + fGoal.Cap - fPct.Cap, GoldLight, Lime, S(3), S(2));
             y += fGoal.Cap + S(13);
 
             Bar(cv, x0, y, contentW, S(13), goal.Progress, S);
             y += S(13) + S(8);
             var caption = $"{L.N(goal.Chests)} / {L.N(goal.Odds)} {L.T("coffres", "chests", "cofres")}";
             Text(cv, fSmall, caption, x0, y, Muted, Muted, S(2), 0);
-            var odds = L.T($"1 sur {L.N(goal.Odds)}", $"1 in {L.N(goal.Odds)}", $"1 de {L.N(goal.Odds)}");
-            Text(cv, fSmall, odds, right - Advance(fSmall, odds), y, Muted, Muted, S(2), 0, 0.8f);
+            var oneIn = L.T($"1 sur {L.N(goal.Odds)}", $"1 in {L.N(goal.Odds)}", $"1 de {L.N(goal.Odds)}");
+            Text(cv, fSmall, oneIn, right - Advance(fSmall, oneIn), y, Muted, Muted, S(2), 0, 0.8f);
             y += fSmall.Cap;
         }
 
@@ -316,6 +348,38 @@ internal sealed partial class HudRenderer : IDisposable
         if (lastRow != null)
         {
             StatRow(lastRow);
+        }
+        if (perfRow != null)
+        {
+            StatRow(perfRow);
+        }
+
+        // ---- Every other treasure: name, chance (gold, "×" during a boosting Treasure Hour) and a thin bar
+        if (oddsList != null)
+        {
+            y += S(18);
+            var title = L.T("CHANCES PAR RÉCOMPENSE", "CHANCE PER REWARD", "PROBABILIDAD POR RECOMPENSA");
+            Text(cv, fOddsTitle, title, x0, y, Lime, LimeDark, S(2), S(1));
+            y += fOddsTitle.Cap + S(4);
+            var gap = S(22);
+            var cellW = (contentW - gap) / 2;
+            var trackH = Math.Max(2, S(4));
+            var track = Cached($"otrack{cellW}x{trackH}", () => Gfx.RoundRect(cellW, trackH, trackH / 2f));
+            for (var i = 0; i < oddsList.Count; i++)
+            {
+                var o = oddsList[i];
+                var cx = x0 + (i % 2) * (cellW + gap);
+                var cy = y + S(9) + (i / 2) * (oddsRowH + S(9));
+                var pctText = HudModel.Percent(o.Chance) + (o.Boosted ? " ×" : "");
+                Text(cv, fSmall, o.Name, cx, cy, Ice, Ice, S(2), 0);
+                Text(cv, fSmall, pctText, cx + cellW - Advance(fSmall, pctText), cy, o.Boosted ? Coral : Lime, o.Boosted ? Coral : Lime, S(2), 0);
+                var by = cy + fSmall.Cap + S(5);
+                cv.Fill(track, cx, by, Panel, 0.85f);
+                var fillW = Math.Max(trackH, (int)Math.Round(cellW * Math.Min(1, o.Chance)));
+                var fill = Cached($"ofill{fillW}x{trackH}", () => Gfx.RoundRect(fillW, trackH, trackH / 2f));
+                cv.FillV(fill, cx, by, GoldLight, o.Boosted ? Coral : Lime);
+            }
+            y += S(9) + (oddsList.Count + 1) / 2 * (oddsRowH + S(9)) - S(9);
         }
 
         // ---- Website
@@ -412,7 +476,7 @@ internal sealed partial class HudRenderer : IDisposable
             var pad = (g.W - ink.M.W) / 2;
             cv.Fill(g, nx - ink.Pad - pad, numTop - ink.Pad - fBig.CapTop - pad, Lime, 0.9f * pop);
         }
-        Text(cv, fBig, number, nx, numTop, v.Mode == HudMode.Live ? Col.Hex(0xe9ffad) : White,
+        Text(cv, fBig, number, nx, numTop, v.Mode == HudMode.Live ? GoldLight : White,
             v.Mode == HudMode.Live ? Lime : v.Chests == null ? Muted : Ice, S(3), S(3));
         f.Number = (nx, numTop, numW, fBig.Cap);
 
@@ -433,12 +497,12 @@ internal sealed partial class HudRenderer : IDisposable
                 Outline(cv, star, gx, gy + (fPct.Cap - gi) / 2, S(2));
                 cv.FillV(star, gx, gy + (fPct.Cap - gi) / 2, Col.Hex(0xfff2a8), Amber);
             }
-            Text(cv, fPct, pct!, gx + gi + S(6), gy, Col.Hex(0xe9ffad), Lime, S(3), S(2));
+            Text(cv, fPct, pct!, gx + gi + S(6), gy, GoldLight, Lime, S(3), S(2));
         }
         if (pop > 0 && popCount > 0)
         {
             var rise = (1 - pop) * S(20);
-            Text(cv, fPlus, "+" + L.N(popCount), nx + numW - S(6), (int)(numTop - S(10) - rise), Col.Hex(0xe9ffad), Lime, S(3), S(2), Math.Min(1, pop * 1.6f));
+            Text(cv, fPlus, "+" + L.N(popCount), nx + numW - S(6), (int)(numTop - S(10) - rise), GoldLight, Lime, S(3), S(2), Math.Min(1, pop * 1.6f));
         }
         y += icon;
 
@@ -451,7 +515,7 @@ internal sealed partial class HudRenderer : IDisposable
         if (v.Event is { } ev)
         {
             y += S(9);
-            Text(cv, fEvent, ev, x0, y, v.EventOn ? Col.Hex(0xe9ffad) : White, v.EventOn ? Lime : Ice, S(3), S(2));
+            Text(cv, fEvent, ev, x0, y, v.EventOn ? GoldLight : White, v.EventOn ? Lime : Ice, S(3), S(2));
             y += fEvent.Cap;
         }
         if (lastLine != null)
@@ -530,7 +594,7 @@ internal sealed partial class HudRenderer : IDisposable
         {
             HudMode.Live => (Coral, White, 1f),
             HudMode.InProgress => (Amber, Navy, 1f),
-            _ => (Col.Hex(0x2a4aa8), White, 0.95f),
+            _ => (Crimson, White, 0.95f),
         };
         var slant = S(5);
         var tagShape = Cached($"tag{tagW}x{tagH}", () => Gfx.Poly(tagW + slant, tagH, new (float, float)[] { (slant, 0f), (tagW + slant, 0f), (tagW, tagH), (0f, tagH) }));
@@ -572,7 +636,7 @@ internal sealed partial class HudRenderer : IDisposable
             if (part > 0)
             {
                 var cut = (float)(part * segW + slant);
-                cv.FillV(seg, sx, y, Col.Hex(0xe9ffad), LimeDark, 1, clipRight: sx + cut);
+                cv.FillV(seg, sx, y, GoldLight, LimeDark, 1, clipRight: sx + cut);
             }
         }
     }

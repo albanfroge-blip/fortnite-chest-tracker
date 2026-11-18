@@ -38,6 +38,10 @@ public enum HudMode
 /// <param name="Progress">Chests opened / average number of chests for one drop (0 … 1).</param>
 public sealed record HudGoal(string Key, string Name, double Chance, double Progress, int Chests, int Odds);
 
+/// <summary>Chance of one treasure for the "all rewards" grid of the overlay.</summary>
+/// <param name="Boosted">A Treasure Hour is boosting this treasure right now.</param>
+public sealed record HudOdds(string Key, string Name, double Chance, bool Boosted);
+
 /// <summary>What the overlays (game window, OBS page, preview of the page) show.</summary>
 /// <param name="Chests">Hero number: chests of the match in progress (Live), of the last match (Idle); null = "—" / "…".</param>
 /// <param name="Total">All the chests counted ("≈" when the estimate of older matches is included).</param>
@@ -71,10 +75,23 @@ public sealed record HudView(HudMode Mode, int? Chests, string Total, int Sessio
     /// <summary>The line total · session · treasures (full layout), unless the player hid it.</summary>
     public bool ShowStats { get; init; } = true;
 
+    /// <summary>Average chests per match ("12,4"), null = no match yet or hidden.</summary>
+    public string? AvgChests { get; init; }
+
+    /// <summary>Best match (most chests), null = no match yet or hidden.</summary>
+    public int? BestChests { get; init; }
+
+    /// <summary>Chests per hour of play ("38"), null = unknown or hidden.</summary>
+    public string? PerHour { get; init; }
+
+    /// <summary>Chance of every treasure (other than the goal), null = hidden.</summary>
+    public IReadOnlyList<HudOdds>? AllOdds { get; init; }
+
     public static HudView Empty { get; } = new(HudMode.Idle, null, "0", 0, 0, null);
 
     /// <summary>Short fingerprint of what is drawn (cache key of the picture served to the page).</summary>
-    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, LastChests, LastDuration, UpdatedAt, Event, ShowStats, L.Code);
+    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, LastChests, LastDuration, UpdatedAt, Event, ShowStats, L.Code, AvgChests, BestChests, PerHour,
+        AllOdds == null ? "" : string.Join(",", AllOdds.Select(o => HudModel.Percent(o.Chance) + (o.Boosted ? "!" : ""))));
 }
 
 /// <summary>Builds the overlay view from the saved matches and the match in progress.</summary>
@@ -127,8 +144,27 @@ public static class HudModel
             Event = EventLine(DateTime.UtcNow, out var on),
             EventOn = on,
             ShowStats = config.OverlayStats,
+            AvgChests = d.Matches.Count > 0 ? d.Matches.Average(m => m.ChestsOpened).ToString("0.#", L.Culture) : null,
+            BestChests = d.Matches.Count > 0 ? d.Matches.Max(m => m.ChestsOpened) : null,
+            PerHour = PerHourOf(d.Matches),
+            AllOdds = TreasureOdds.All.Where(o => o.Key != goalKey)
+                .Select(o => new HudOdds(o.Key, UiTexts.Get("short_" + o.Key), TreasureOdds.Chance(Hunt.Weighted(hunt, o.Key) + huntEstimated, o.Odds),
+                    Season.ActiveAt(DateTime.UtcNow) is { } hour && hour.BoostOf(o.Key) > 1))
+                .ToList(),
         };
+        if (built.Goal is { } shown && built.AllOdds != null)
+        {
+            built = built with { AllOdds = built.AllOdds.Where(o => o.Key != shown.Key).ToList() };
+        }
         return Trim(built, config);
+    }
+
+    /// <summary>Chests per hour over the matches whose length is known (at least 10 minutes in all), else null.</summary>
+    private static string? PerHourOf(IEnumerable<MatchRecord> matches)
+    {
+        var timed = matches.Where(m => m.DurationSeconds is > 60).ToList();
+        var seconds = timed.Sum(m => (double)m.DurationSeconds!.Value);
+        return seconds < 600 ? null : (timed.Sum(m => m.ChestsOpened) / (seconds / 3600)).ToString("0", L.Culture);
     }
 
     /// <summary>Removes the blocks the player chose to hide.</summary>
@@ -136,7 +172,11 @@ public static class HudModel
     {
         if (!config.OverlayGoal)
         {
-            v = v with { Goal = null };
+            v = v with { Goal = null, AllOdds = null };
+        }
+        if (!config.OverlayStats)
+        {
+            v = v with { AvgChests = null, BestChests = null, PerHour = null };
         }
         if (!config.OverlayLast)
         {
